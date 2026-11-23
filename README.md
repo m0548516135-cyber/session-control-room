@@ -1,4 +1,4 @@
-# Claude Control Room · חדר בקרה ל-Claude Code
+# Session Control Room · חדר בקרה ל-Claude Code
 
 דשבורד מקומי בדפדפן שמראה בזמן אמת מה Claude Code עושה, ואיתו שני כלים נלווים:
 - **סייר שבועי** שמחפש סקילים שימושיים לבעיות שהגדרת;
@@ -13,6 +13,22 @@
 > - לא לכל נזק, אובדן מידע, חיוב כספי או תקלה, ישירים או עקיפים.
 >
 > ההתקנה והשימוש הם באחריותך הבלעדית. ההבהרה מוצגת גם במתקין, בחלון ההפעלה, וכחלון קופץ בדפדפן בהפעלה הראשונה. ראו גם [LICENSE](LICENSE).
+
+---
+
+## ⚡ התקנה מהירה (למי שכבר יש Claude Code)
+
+בתוך Claude Code מקלידים שתי שורות:
+
+```
+/plugin marketplace add m0548516135-cyber/session-control-room
+/plugin install session-control-room@session-control-room
+```
+
+אחר כך פותחים סשן חדש וכותבים ל-Claude: **"תתקין לי את חדר הבקרה"**.
+הסקיל `control-room` יוריד את המערכת, יבדוק מה חסר במחשב, יפעיל אותה ויוודא שהיא עובדת.
+
+אין לכם עדיין Claude Code? מתחילים מ[פרק 3](#3-התקנה-מאפס).
 
 ---
 
@@ -94,9 +110,9 @@ irm https://claude.ai/install.ps1 | iex
 
 **4. הורדת המערכת:** בדף ה-GitHub של הפרויקט לוחצים **Code → Download ZIP** ופורסים לתיקייה, או:
 ```powershell
-git clone <כתובת המאגר>
+git clone https://github.com/m0548516135-cyber/session-control-room.git C:\tools\session-control-room
 ```
-> 💡 עדיף נתיב באותיות לטיניות בלבד, למשל `C:\tools\claude-control-room`.
+> 💡 עדיף נתיב באותיות לטיניות בלבד, למשל `C:\tools\session-control-room`.
 
 **5. הרצת המתקין:** בתוך התיקייה, ב-PowerShell:
 ```powershell
@@ -105,7 +121,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 המתקין:
 - בודק מה מותקן ומה חסר, ואומר בדיוק מה להריץ;
 - יוצר קובץ הגדרות מקומי (`control-room\config.json`);
-- מוסיף קיצור דרך **"Claude Control Room"** לשולחן העבודה.
+- מוסיף קיצור דרך **"Session Control Room"** לשולחן העבודה.
 
 המתקין לא מוריד ולא מתקין תוכנות בעצמו. אם משהו חסר, מתקינים אותו ומריצים את המתקין שוב.
 
@@ -313,7 +329,9 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -Scout
 ## 11. מבנה התיקיות
 
 ```
-claude-control-room\
+session-control-room\
+├── .claude-plugin\        ← הגדרות התוסף (התקנה דרך /plugin)
+├── skills\control-room\   ← הסקיל שמתקין ומפעיל את המערכת
 ├── README.md              ← המדריך הזה
 ├── LICENSE                ← MIT (AS-IS, ללא אחריות)
 ├── install.ps1            ← בדיקת דרישות + הגדרות + קיצור דרך (+ ‎-Scout)

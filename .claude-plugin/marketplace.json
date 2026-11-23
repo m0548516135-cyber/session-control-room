@@ -1,0 +1,19 @@
+{
+  "name": "session-control-room",
+  "description": "Local dashboard for Claude Code: live sessions, token use, a 3D world view, a weekly skill scout and a self-improvement pipeline.",
+  "owner": {
+    "name": "Session Control Room contributors"
+  },
+  "plugins": [
+    {
+      "name": "session-control-room",
+      "source": "./",
+      "description": "Installs and runs the Control Room: a zero-token local dashboard (http://localhost:8790) that shows what every Claude Code session is doing, plus a weekly skill scout and a video-to-proposals self-improvement pipeline. Windows. AS-IS, no warranty.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Session Control Room contributors"
+      },
+      "license": "MIT"
+    }
+  ]
+}

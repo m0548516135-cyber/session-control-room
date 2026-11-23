@@ -1,4 +1,4 @@
-# Claude Control Room - installer / checker (Windows).
+# Session Control Room - installer / checker (Windows).
 # Safe to run more than once. Installs nothing without telling you; it checks
 # prerequisites, writes control-room\config.json, adds a desktop shortcut and,
 # with -Scout, registers the weekly scout task.
@@ -19,7 +19,7 @@ $CR   = Join-Path $Root "control-room"
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Yellow
-Write-Host " Claude Control Room is provided AS-IS, free of charge." -ForegroundColor Yellow
+Write-Host " Session Control Room is provided AS-IS, free of charge." -ForegroundColor Yellow
 Write-Host " NO warranty of any kind: not for results, accuracy, compatibility," -ForegroundColor Yellow
 Write-Host " costs, or any damage. You install and use it at your own risk." -ForegroundColor Yellow
 Write-Host "================================================================" -ForegroundColor Yellow
@@ -75,15 +75,15 @@ $startCmd = Join-Path $CR "start.cmd"
 if ($startCmd -match '[^\x00-\x7F]') {
   # Windows shortcuts and .cmd files are unreliable with non-English folder names.
   Write-Host "No desktop shortcut: the folder path has non-English characters." -ForegroundColor DarkYellow
-  Write-Host "Start with control-room\start.cmd, or move the folder to a path like C:\tools\claude-control-room and run this again." -ForegroundColor DarkYellow
+  Write-Host "Start with control-room\start.cmd, or move the folder to a path like C:\tools\session-control-room and run this again." -ForegroundColor DarkYellow
 } else {
   try {
     $ws = New-Object -ComObject WScript.Shell
-    $lnk = $ws.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Claude Control Room.lnk"))
+    $lnk = $ws.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Session Control Room.lnk"))
     $lnk.TargetPath = $startCmd
     $lnk.WorkingDirectory = $CR
     $lnk.Save()
-    Write-Host "Added desktop shortcut: Claude Control Room"
+    Write-Host "Added desktop shortcut: Session Control Room"
   } catch { Write-Host "Could not create a desktop shortcut (not critical). Use control-room\start.cmd." -ForegroundColor DarkYellow }
 }
 
@@ -105,6 +105,6 @@ if ($missing.Count -gt 0) {
   Write-Host "Then run this script again."
 } else {
   Write-Host "Ready. Start the dashboard with control-room\start.cmd" -ForegroundColor Green
-  Write-Host "(or the 'Claude Control Room' desktop shortcut, if one was added). It opens http://localhost:$Port"
+  Write-Host "(or the 'Session Control Room' desktop shortcut, if one was added). It opens http://localhost:$Port"
 }
 Write-Host ""
