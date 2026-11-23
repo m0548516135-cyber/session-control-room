@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>חדר בקרה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+:root{
+  --bg:#DDE4E1; --surface:#F4F7F5; --ink:#15201D; --muted:#5E6B67; --line:#C2CCC8; --panel:#E9EEEC;
+  --floor:#CFD8D4; --floorline:#BAC6C1; --desk:#8C6B4A; --deskTop:#A9845E; --bot:#2B3A35; --botFace:#EAF2EE;
+  --files:#C7841A; --write:#7C62CC; --web:#2C63D6; --browser:#C23B7E; --shell:#3E7D5A;
+  --mcp:#0E8C8C; --agents:#D2552B; --other:#98A3A0; --ok:#2E9E5B; --warn:#D99A1E; --off:#A6B0AC;
+  --mono:'IBM Plex Mono',ui-monospace,monospace; --sans:'IBM Plex Sans Hebrew',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1513; --surface:#17201D; --ink:#E3EAE7; --muted:#8E9B97; --line:#2B3733; --panel:#121A17;
+  --floor:#1C2623; --floorline:#26322E; --desk:#5B4632; --deskTop:#7A5E42; --bot:#C9D6D1; --botFace:#1B2522;
+  --files:#E3A23B; --write:#9C86E6; --web:#5E8DF0; --browser:#E2669F; --shell:#5FAE7F;
+  --mcp:#2DB5B5; --agents:#EE7A52; --other:#6F7B78; --off:#45514D;
+}}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:1360px;margin:0 auto;padding:18px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{font-size:34px;line-height:1;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:13px}
+.live{display:flex;gap:14px;align-items:center;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.led{width:9px;height:9px;border-radius:50%;background:var(--off);display:inline-block;vertical-align:middle;margin-inline-end:6px;flex:none}
+.led.on{background:var(--ok);animation:pulse 1.6s infinite}
+.led.idle{background:var(--warn)}
+@keyframes pulse{50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--ok) 0%,transparent)}0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 45%,transparent)}}
+/* tabs */
+nav{display:flex;gap:4px;margin:16px 0 18px;border-bottom:2px solid var(--ink);overflow-x:auto}
+nav button{font:inherit;font-weight:500;font-size:15px;padding:9px 16px;border:0;background:none;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+nav button .tag{margin-inline-start:6px}
+.tab{display:none}.tab.on{display:block}
+h2{font-size:20px;margin:0 0 4px}
+.lede{color:var(--muted);font-size:13.5px;margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.tag{font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:4px;background:var(--panel);color:var(--muted)}
+.tag.yes{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.empty{color:var(--muted);font-size:13.5px;padding:10px 0}
+button:focus-visible{outline:2px solid var(--web);outline-offset:2px}
+
+/* ===== factory floor ===== */
+.floor{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px}
+.station{padding:0;overflow:hidden;cursor:pointer;text-align:start;font:inherit;color:inherit;width:100%;position:relative}
+.station:hover{border-color:var(--ink)}
+.st-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px 0}
+.st-name{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center}
+.st-meta{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.scene{position:relative;height:190px;background:linear-gradient(to top,var(--floor) 32px,var(--floorline) 32px,var(--floorline) 34px,transparent 34px)}
+.scene svg{position:absolute;inset:0;width:100%;height:100%;direction:ltr}
+.bubble{position:absolute;top:8px;inset-inline-start:14px;max-width:62%;background:var(--surface);border:1.5px solid var(--ink);border-radius:10px;padding:6px 10px;font-size:13px;line-height:1.35;box-shadow:0 2px 0 var(--ink)}
+.bubble b{display:block;font-size:13.5px}
+.bubble span{font-family:var(--mono);font-size:11px;color:var(--muted);direction:ltr;display:block;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.station.closed .scene{filter:grayscale(1);opacity:.55}
+.station.closed .bubble{display:none}
+.belt{display:flex;gap:4px;padding:8px 14px 12px;border-top:1px dashed var(--line);direction:ltr;overflow:hidden}
+.pk{width:22px;height:22px;border-radius:5px;background:var(--c);display:grid;place-items:center;flex:none}
+.pk svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.station.working .belt .pk:last-child{animation:drop .6s ease-out}
+@keyframes drop{from{transform:translateY(-10px);opacity:0}}
+.bot-body{transform-box:fill-box;transform-origin:bottom center}
+.working .bot-body{animation:bob 1.2s ease-in-out infinite}
+.working .arm{animation:type .35s ease-in-out infinite alternate}
+@keyframes bob{50%{transform:translateY(-3px)}}
+@keyframes type{to{transform:translateY(3px)}}
+.screen{transition:fill .3s}
+.working .screen{animation:glow 1.4s ease-in-out infinite}
+@keyframes glow{50%{opacity:.75}}
+.zz{font-family:var(--mono);font-size:14px;fill:var(--muted);animation:zz 2.4s ease-in-out infinite}
+@keyframes zz{50%{transform:translateY(-6px);opacity:.4}}
+.helper{animation:bob 1s ease-in-out infinite}
+.section-gap{margin-top:30px}
+.shelf-mini{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.mini{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;font:inherit;color:inherit;text-align:start;width:100%}
+.mini .n{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mix{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--panel);width:90px;flex:none}
+.mix i{display:block;height:100%}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:18px}
+.sum .card{padding:10px 14px;display:flex;align-items:center;gap:12px}
+.sum .ico{width:34px;height:34px;border-radius:9px;background:var(--c);display:grid;place-items:center;flex:none}
+.sum .ico svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sum b{font-family:var(--mono);font-size:18px;display:block;line-height:1.1}
+.sum small{color:var(--muted);font-size:12.5px}
+
+/* ===== skills ===== */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{font:inherit;font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.cat-h{display:flex;align-items:baseline;gap:10px;margin:22px 0 10px}
+.cat-h h3{margin:0;font-size:17px}
+.skgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.sk{padding:12px 14px;display:flex;flex-direction:column;gap:6px;position:relative}
+.sk .he{font-weight:500;font-size:14.5px;line-height:1.35}
+.sk .en{font-family:var(--mono);font-size:11.5px;color:var(--muted);direction:ltr;text-align:right}
+.meter{display:flex;gap:3px;direction:ltr;justify-content:flex-end}
+.meter i{width:9px;height:9px;border-radius:2px;background:var(--panel)}
+.meter i.f{background:var(--ok)}
+.sk .foot{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.sk.dead{background:transparent;border-style:dashed}
+.sk.dead .he{color:var(--muted)}
+.btn{font:inherit;font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--surface);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink)}
+
+/* ===== proposals / infra ===== */
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.col{padding:12px}
+.col h3{margin:0 0 8px;font-size:14px;display:flex;justify-content:space-between}
+.prop{padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--bg);font-size:13px}
+.prop .id{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.list{padding:12px 14px}
+.list h3{margin:0 0 8px;font-size:15px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px dashed var(--line);font-size:13.5px}
+.row:first-of-type{border-top:0}
+.row .v{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.scout{padding:14px 16px;margin-bottom:16px}
+.find{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-top:1px dashed var(--line)}
+.find:first-of-type{border-top:0}
+
+/* ===== drawer ===== */
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;width:min(720px,94vw)}
+dialog::backdrop{background:rgb(0 0 0 / .4)}
+.dh{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.db{padding:16px 18px;max-height:72vh;overflow:auto}
+.dgrid{display:grid;grid-template-columns:170px 1fr;gap:18px;align-items:start;margin-bottom:14px}
+.dgrid svg{width:170px;height:170px}
+.lg{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.lg span{display:flex;align-items:center;gap:8px}
+.lg i{width:10px;height:10px;border-radius:2px;background:var(--c)}
+.lg em{font-style:normal;font-family:var(--mono);color:var(--muted);font-size:12px;margin-inline-start:auto}
+.skchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
+.skchips span{font-size:12.5px;padding:3px 9px;border-radius:999px;background:var(--panel)}
+.ev{display:grid;grid-template-columns:62px 26px 1fr;gap:10px;align-items:start;padding:6px 0;font-size:13.5px;border-top:1px dashed var(--line)}
+.ev .t{font-family:var(--mono);font-size:11px;color:var(--muted);direction:ltr;text-align:right;padding-top:4px}
+.ev .tg{font-family:var(--mono);font-size:11.5px;color:var(--muted);direction:ltr;text-align:right;word-break:break-all}
+.x{font:inherit;background:none;border:1px solid var(--line);border-radius:6px;color:var(--ink);cursor:pointer;padding:2px 10px}
+/* ===== 3D world ===== */
+.world{position:relative;height:calc(100vh - 170px);min-height:520px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#8FD3FF}
+.world canvas{display:block;width:100%;height:100%;cursor:grab}
+.hud{position:absolute;inset:12px 12px auto 12px;display:flex;justify-content:space-between;gap:12px;pointer-events:none;align-items:flex-start}
+.hud-card .big{font-size:20px;font-weight:700;line-height:1.2;margin-bottom:6px}.hud-card .big b{font-family:var(--mono);font-size:30px;color:#2E9E5B}
+.hud-card .mdl{font-family:var(--mono);font-size:10.5px;padding:0 5px;border-radius:4px;background:#15201D;color:#fff;margin-inline-start:6px}
+.hud-card{pointer-events:auto;background:rgb(255 255 255 / .9);color:#15201D;border-radius:12px;padding:10px 14px;min-width:200px;box-shadow:0 4px 0 rgb(21 32 29 / .25)}
+.hud-card button{display:flex;align-items:center;gap:8px;width:100%;font:inherit;font-size:13.5px;background:none;border:0;padding:3px 0;cursor:pointer;color:inherit;text-align:start}
+.hud-card .sw{width:14px;height:14px;border-radius:50%;border:2px solid #15201D;flex:none}
+.hud-card small{color:#5E6B67;margin-inline-start:auto;font-family:var(--mono);font-size:11px}
+.hud-hint{max-width:360px;background:rgb(21 32 29 / .78);color:#fff;font-size:12.5px;border-radius:12px;padding:8px 12px;line-height:1.45;pointer-events:auto}
+.hud-hint summary{cursor:pointer;font-weight:700;font-size:13px}.hud-hint[open] summary{margin-bottom:6px}
+.world-err{position:absolute;inset:auto 12px 12px 12px;background:var(--surface);padding:10px;border-radius:8px}
+/* ===== inside a building ===== */
+.factory{position:fixed;inset:0;z-index:50;background:#0A0F16;color:#E6EDF7;display:flex;flex-direction:column;padding:14px 18px;gap:10px;overflow:auto}
+.fhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.fhead h2{margin:0;border:0;padding:0;font-size:26px;color:#fff}
+.fsub{color:#9AA7BC;font-size:14px}.fclose{font:inherit;background:#1B2433;color:#fff;border:1px solid #33425A;border-radius:8px;padding:7px 18px;cursor:pointer}
+.fscene{flex:1;min-height:300px;border:1px solid #243044;border-radius:14px;overflow:hidden;background:#10161F}.fscene svg{display:block;width:100%;height:100%;direction:ltr}
+.fbottom{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:14px;max-height:30vh}
+.fstats{display:flex;flex-direction:column;gap:6px;overflow:auto}.fnum{display:flex;align-items:baseline;gap:10px;background:#141B27;border:1px solid #243044;border-radius:10px;padding:8px 12px}
+.fnum b{font-family:var(--mono);font-size:24px}.fnum span{color:#9AA7BC;font-size:13px}
+.fproj{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#C9D3E3}.fproj i,.frow i{width:10px;height:10px;border-radius:3px;flex:none}.fproj em{margin-inline-start:auto;font-style:normal;font-family:var(--mono);color:#9AA7BC}
+.flog{overflow:auto;background:#141B27;border:1px solid #243044;border-radius:10px;padding:6px 12px}
+.frow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px dashed #243044;font-size:13.5px}.frow:first-child{border-top:0}
+.frow .ft{font-family:var(--mono);color:#7C8AA1;font-size:12px}.frow b{font-weight:500;flex:1}.frow .fp{color:#9AA7BC;font-size:12px}
+@media (max-width:800px){.fbottom{grid-template-columns:1fr;max-height:none}}
+/* ===== improve pipeline ===== */
+.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:stretch}
+.stage{padding:14px;position:relative;text-align:center;border-radius:12px;margin-inline-end:22px;background:var(--surface);border:1px solid var(--line)}
+.stage:not(:last-child)::after{content:"";position:absolute;inset-inline-end:-22px;top:50%;width:22px;height:2px;background:var(--ink)}
+.stage b{font-family:var(--mono);font-size:30px;display:block;line-height:1.1}
+.stage .lbl{font-weight:700;font-size:14px}
+.stage .warn{font-size:12px;color:var(--agents);margin-top:4px}
+@media (max-width:800px){.pipe{grid-template-columns:1fr 1fr}.stage{margin-bottom:12px}}
+footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+@media (max-width:600px){h1{font-size:26px}.floor{grid-template-columns:1fr}.dgrid{grid-template-columns:1fr}}
+/* ===== disclaimer (shown until accepted) ===== */
+.disc{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:color-mix(in srgb,var(--ink) 55%,transparent);backdrop-filter:blur(3px)}
+.disc[hidden]{display:none}
+.disc-box{background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:14px;box-shadow:0 6px 0 var(--ink);max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;padding:22px 24px}
+.disc-box .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--agents);margin-bottom:6px}
+.disc-box h2{font-size:24px;margin:0 0 12px}
+.disc-box p{margin:0 0 10px;font-size:14.5px}
+.disc-box ul{margin:0 0 12px;padding-inline-start:20px;font-size:14px}
+.disc-box li{margin-bottom:4px}
+.disc-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 16px;padding:10px 12px;background:var(--panel);border-radius:8px;font-size:14px;cursor:pointer}
+.disc-check input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--ink)}
+.disc-go{font:inherit;font-weight:700;font-size:15px;width:100%;padding:11px;border:0;border-radius:9px;background:var(--ink);color:var(--surface);cursor:pointer}
+.disc-go:disabled{opacity:.35;cursor:not-allowed}
+.disc-go:focus-visible,.disc-check input:focus-visible{outline:2px solid var(--web);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="disc" id="disc" role="dialog" aria-modal="true" aria-labelledby="discTitle" hidden>
+  <div class="disc-box">
+    <div class="eyebrow">לפני שמתחילים</div>
+    <h2 id="discTitle">הבהרה: שימוש באחריותך בלבד</h2>
+    <p>חדר הבקרה וכל הרכיבים שנלוים אליו (העולם, הסייר, סוכן ההצעות) נבנו לשימוש אישי ומועברים <b>כמו שהם (AS-IS)</b>, ללא תשלום.</p>
+    <p><b>היוצר אינו מתחייב לדבר</b>, ובכלל זה:</p>
+    <ul>
+      <li>לא לתוצאות, ולא לנכונות או לשלמות של מה שמוצג כאן.</li>
+      <li>לא לכך שהמערכת תעבוד במחשב שלך, ולא לזמינות, לתמיכה או לעדכונים.</li>
+      <li>לא לעלויות של Claude או של שירותים אחרים שתפעיל דרכה.</li>
+      <li>לא לכל נזק, אובדן מידע, חיוב כספי או תקלה, ישירים או עקיפים.</li>
+    </ul>
+    <p>ההתקנה, השימוש וכל פעולה שתבצע (כולל אישור הצעות והתקנת כלים) הם <b>באחריותך הבלעדית</b>.</p>
+    <p>שים לב: המערכת קוראת את יומני השיחות שלך עם Claude <b>במחשב שלך בלבד</b> ולא שולחת אותם לשום מקום.</p>
+    <label class="disc-check"><input type="checkbox" id="discOk"> קראתי והבנתי. אני משתמש במערכת באחריותי בלבד, ולא תהיה לי כל טענה כלפי היוצר.</label>
+    <button class="disc-go" id="discGo" disabled>מאשר וממשיך</button>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='controlRoom.disclaimer.v1', d=document.getElementById('disc'), ok=document.getElementById('discOk'), go=document.getElementById('discGo'), seen=false;
+  try{seen=localStorage.getItem(KEY)==='yes'}catch(e){}
+  if(seen) return;
+  d.hidden=false; ok.focus();
+  ok.addEventListener('change',function(){go.disabled=!ok.checked});
+  go.addEventListener('click',function(){
+    try{localStorage.setItem(KEY,'yes')}catch(e){}
+    d.hidden=true;
+  });
+})();
+</script>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>חדר בקרה</h1>
+      <div class="sub">המפעל של Claude: מי עובד, על מה, ומאיפה הוא לוקח מידע. קורא קבצים מקומיים בלבד, אפס טוקנים.</div>
+    </div>
+    <div class="live"><span style="display:flex;align-items:center"><span class="led on" id="hb"></span><span id="scan">סורק…</span></span></div>
+  </header>
+
+  <nav role="tablist">
+    <button role="tab" data-t="world" aria-selected="true">העולם</button>
+    <button role="tab" data-t="floor" aria-selected="false">תחנות <span class="tag" id="cFloor"></span></button>
+    <button role="tab" data-t="improve" aria-selected="false">שיפור עצמי <span class="tag" id="cImp"></span></button>
+    <button role="tab" data-t="skills" aria-selected="false">סקילים <span class="tag" id="cSkills"></span></button>
+    <button role="tab" data-t="props" aria-selected="false">סייר והצעות <span class="tag" id="cProps"></span></button>
+    <button role="tab" data-t="infra" aria-selected="false">תשתית</button>
+  </nav>
+
+  <div class="tab on" id="t-world">
+    <div class="world" id="world">
+      <div class="hud">
+        <div class="hud-card"><div class="big" id="cnt"></div><div id="who"></div></div>
+        <details class="hud-hint"><summary>מה רואים כאן?</summary>כל דמות היא סשן פתוח, בצבע של הפרויקט שלו. דמות שעובדת מסתובבת בין הבניינים של הפעולות האחרונות שלה, עומדת ליד הדלת בזמן העבודה, ונושאת ארגז בצבע הבניין שממנו לקחה מידע. דמות שמחכה לך הולכת הביתה, לבית בצבע הפרויקט, עם Zz. השלט מתחת לכל בניין מראה מה נעשה בו לאחרונה, ולחיצה על בניין פותחת את הרשימה. השמיים מתחלפים לפי השעה אצלך: בלילה הפנסים נדלקים ויוצאים כוכבים. גרירה מסובבת, גלגלת מתקרבת.</details>
+      </div>
+      <div class="world-err" id="worldLoad">טוען את האי…</div>
+      <div class="world-err" id="worldErr" hidden>התלת־ממד לא נטען (אין חיבור ל-cdn.jsdelivr.net). לשונית "תחנות" עובדת בלי זה.</div>
+    </div>
+  </div>
+
+  <div class="tab" id="t-improve">
+    <h2>שיפור עצמי: מסרטון ועד התקנה</h2>
+    <p class="lede">כל סרטון עובר את השלבים משמאל לימין. מסנן הרלוונטיות (חדש) מעביר הלאה רק תובנה שפותרת בעיה של פרויקט פעיל או צורך מהרשימה. כל השאר נכנס לחניה.</p>
+    <div class="pipe" id="pipe"></div>
+    <div class="grid3" style="margin-top:16px" id="impLists"></div>
+  </div>
+
+  <div class="tab" id="t-floor">
+    <div class="sum" id="sum"></div>
+    <h2>תחנות פעילות</h2>
+    <p class="lede">כל תחנה היא סשן. הרובוט עובד כשהסשן עובד, ישן כשהסשן מחכה לך, ומכובה כשהסשן סגור. המסך שלו מראה מאיפה הוא לוקח מידע עכשיו, והחבילות למטה הן הפעולות האחרונות. רובוטים קטנים לידו הם סוכני משנה שרצים כרגע. לחיצה על תחנה פותחת את הפירוט.</p>
+    <div class="floor" id="floor"></div>
+  </div>
+
+  <div class="tab" id="t-skills">
+    <h2>מה יש לך במחסן</h2>
+    <p class="lede" id="skLede"></p>
+    <div class="chips" role="group" aria-label="סינון">
+      <button class="chip" data-f="all" aria-pressed="true">הכל</button>
+      <button class="chip" data-f="used" aria-pressed="false">בשימוש</button>
+      <button class="chip" data-f="dead" aria-pressed="false">לא הופעלו</button>
+      <button class="chip" data-f="arch" aria-pressed="false">בארכיון</button>
+    </div>
+    <div id="shelf"></div>
+  </div>
+
+  <div class="tab" id="t-props">
+    <div id="scoutBox"></div>
+    <h2>הצעות שיפור</h2>
+    <p class="lede">מתוך PROPOSALS.md. "אשר" מסמן [x] בקובץ, ואחר כך <code>/apply</code> מבצע.</p>
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="tab" id="t-infra">
+    <h2>סוכנים, חיבורים וגרפים</h2>
+    <p class="lede">הסוכנים שהגדרת, הסוכנים המובנים שהופעלו בפועל, שרתי MCP ומודים, ואיזה פרויקט מחזיק גרף ידע שחוסך קריאת קבצים.</p>
+    <div class="grid3" id="infra"></div>
+  </div>
+
+  <footer>מקור הנתונים: ~/.claude (סקילים, סוכנים, תמלילי סשנים) ו-PROPOSALS.md. מתרענן כל 5 שניות.</footer>
+</div>
+
+<dialog id="dlg"><div class="dh"><div><strong id="dT" style="font-size:18px"></strong><div class="sub" id="dS"></div></div><button class="x" onclick="dlg.close()">סגור</button></div><div class="db" id="dB"></div></dialog>
+
+<script>
+const ICON = {
+  files:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+  write:'<path d="M4 20l4-1 11-11-3-3L5 16z"/>',
+  web:'<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16"/>',
+  browser:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/><circle cx="6" cy="7" r=".5"/>',
+  shell:'<path d="M5 8l4 4-4 4M12 17h7"/>',
+  mcp:'<path d="M9 3v5M15 3v5M7 8h10v4a5 5 0 01-10 0zM12 17v4"/>',
+  agents:'<circle cx="9" cy="9" r="3"/><circle cx="16" cy="10" r="2.5"/><path d="M4 19c1-3 3-5 5-5s4 2 5 5M14 18c.5-2 1.5-3 2.5-3s2.5 1 3 3"/>',
+  other:'<circle cx="12" cy="12" r="2"/>'
+};
+const SRC = {
+  files:{he:'קבצים שלך',c:'--files'}, write:{he:'כתיבה לקבצים',c:'--write'},
+  web:{he:'אינטרנט',c:'--web'}, browser:{he:'כרום',c:'--browser'},
+  shell:{he:'פקודות מחשב',c:'--shell'}, mcp:{he:'כלים חיצוניים',c:'--mcp'},
+  agents:{he:'סוכני משנה',c:'--agents'}, other:{he:'ניהול פנימי',c:'--other'}
+};
+const ORDER = ['files','web','browser','mcp','shell','write','agents','other'];
+const VERB = {Read:'קורא קובץ',Grep:'מחפש בתוך קבצים',Glob:'מחפש קבצים',Edit:'עורך קובץ',Write:'כותב קובץ',
+  Bash:'מריץ פקודה',PowerShell:'מריץ פקודה',WebSearch:'מחפש בגוגל',WebFetch:'קורא אתר',Agent:'שולח סוכן משנה',Task:'שולח סוכן משנה',
+  Skill:'מפעיל סקיל',AskUserQuestion:'שואל אותך שאלה',ToolSearch:'טוען כלי',TodoWrite:'מעדכן רשימת משימות',Monitor:'ממתין לתהליך'};
+const verb = r => r.what || VERB[r.tool] || (r.src==='web'?'סורק אתר':r.src==='browser'?'עובד בכרום':r.src==='mcp'?'משתמש בכלי חיצוני':r.tool);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ago = s => s<60?`${s} ש׳`:s<3600?`${Math.round(s/60)} דק׳`:s<86400?`${Math.round(s/3600)} שע׳`:`${Math.round(s/86400)} ימים`;
+const pk = src => `<span class="pk" style="--c:var(${SRC[src].c})" title="${SRC[src].he}"><svg viewBox="0 0 24 24">${ICON[src]}</svg></span>`;
+let S=null, filter='all';
+
+function mixBar(src){
+  const tot=Object.values(src).reduce((a,b)=>a+b,0)||1;
+  return ORDER.filter(k=>src[k]).map(k=>`<i style="width:${src[k]/tot*100}%;background:var(${SRC[k].c})"></i>`).join('');
+}
+
+/* robot workstation scene */
+function scene(s){
+  const last = s.recent[s.recent.length-1] || {src:'other'};
+  const col = `var(${SRC[last.src].c})`;
+  const st = s.status;
+  const eyes = st==='idle' ? '<path d="M268 76h8M284 76h8" stroke="var(--bot)" stroke-width="2.5" stroke-linecap="round"/>'
+                           : '<circle cx="272" cy="76" r="3" fill="var(--bot)"/><circle cx="288" cy="76" r="3" fill="var(--bot)"/>';
+  const helpers = (s.helpers||[]).slice(0,3).map((h,i)=>{
+    const x = 96 - i*34, c=`var(${SRC[h.src||'other'].c})`;
+    return `<g class="helper" style="animation-delay:${i*.2}s"><rect x="${x}" y="128" width="22" height="26" rx="5" fill="var(--bot)"/><rect x="${x+3}" y="112" width="16" height="14" rx="4" fill="var(--bot)"/>
+      <circle cx="${x+8}" cy="119" r="1.6" fill="var(--botFace)"/><circle cx="${x+14}" cy="119" r="1.6" fill="var(--botFace)"/><rect x="${x+6}" y="134" width="10" height="10" rx="2" fill="${c}"/></g>`;}).join('');
+  return `<svg viewBox="0 0 380 190" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+    <!-- pipe from sources -->
+    <path d="M380 40H352V100" stroke="var(--line)" stroke-width="10" fill="none" stroke-linejoin="round"/>
+    <path d="M380 40H352V100" stroke="${col}" stroke-width="4" fill="none" stroke-dasharray="6 8" class="${st==='working'?'flowp':''}"/>
+    <!-- desk + monitor -->
+    <rect x="170" y="118" width="150" height="10" rx="2" fill="var(--deskTop)"/>
+    <rect x="180" y="128" width="8" height="30" fill="var(--desk)"/><rect x="302" y="128" width="8" height="30" fill="var(--desk)"/>
+    <rect x="186" y="66" width="62" height="46" rx="5" fill="var(--bot)"/>
+    <rect class="screen" x="191" y="71" width="52" height="34" rx="3" fill="${st==='closed'?'var(--off)':col}"/>
+    <g transform="translate(206 77) scale(.95)" stroke="#fff" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[last.src]}</g>
+    <rect x="212" y="112" width="10" height="6" fill="var(--bot)"/>
+    <!-- robot -->
+    <g class="bot-body">
+      <rect x="258" y="96" width="44" height="40" rx="10" fill="var(--bot)"/>
+      <rect x="262" y="62" width="36" height="30" rx="9" fill="var(--bot)"/>
+      <rect x="266" y="68" width="28" height="18" rx="5" fill="var(--botFace)"/>
+      ${eyes}
+      <path d="M280 62v-8" stroke="var(--bot)" stroke-width="3"/><circle cx="280" cy="52" r="4" fill="${st==='working'?'var(--ok)':st==='idle'?'var(--warn)':'var(--off)'}"/>
+      <rect class="arm" x="236" y="104" width="26" height="8" rx="4" fill="var(--bot)"/>
+      <rect x="268" y="136" width="9" height="22" rx="3" fill="var(--bot)"/><rect x="284" y="136" width="9" height="22" rx="3" fill="var(--bot)"/>
+    </g>
+    ${st==='idle'?'<text class="zz" x="306" y="50">z</text><text class="zz" x="316" y="38" style="animation-delay:.6s">Z</text>':''}
+    ${helpers}
+  </svg>`;
+}
+
+function renderFloor(){
+  const t=S.sources_total, all=Object.values(t).reduce((a,b)=>a+b,0)||1;
+  document.getElementById('sum').innerHTML = ['files','web','browser','mcp','agents'].map(k=>`<div class="card" style="--c:var(${SRC[k].c})"><span class="ico"><svg viewBox="0 0 24 24">${ICON[k]}</svg></span><div><b>${Math.round((t[k]||0)/all*100)}%</b><small>${SRC[k].he} · ${t[k]||0} פעולות</small></div></div>`).join('');
+  const day = S.sessions.filter(s=>s.status!=='closed' && s.total>0);
+  const rank = {working:0,idle:1,closed:2};
+  const floor = day.sort((a,b)=>rank[a.status]-rank[b.status] || a.age-b.age).slice(0,9);
+  document.getElementById('cFloor').textContent = S.sessions.filter(s=>s.status==='working').length + ' עובדים';
+  document.getElementById('floor').innerHTML = floor.length ? floor.map(s=>{
+    const last=s.recent[s.recent.length-1];
+    const led = s.status==='working'?'on':s.status==='idle'?'idle':'';
+    const state = s.status==='working'?'עובד עכשיו':s.status==='idle'?'מחכה לך':'סגור';
+    return `<button class="card station ${s.status}" data-id="${s.id}">
+      <div class="st-head"><span class="st-name"><span class="led ${led}"></span>${esc(s.project)}</span><span class="st-meta">${state} · ${ago(s.age)} · ${s.total} פעולות</span></div>
+      <div class="scene">${scene(s)}
+        ${last?`<div class="bubble"><b>${esc(verb(last))}</b>${last.what?'':`<span>${esc(last.target)}</span>`}</div>`:''}</div>
+      <div class="belt">${s.recent.slice(-14).map(r=>pk(r.src)).join('')}</div>
+    </button>`;}).join('') : '<div class="empty">אין סשנים ב-24 השעות האחרונות.</div>';
+  document.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>openSess(S.sessions.find(x=>x.id===b.dataset.id)));
+}
+
+function donut(src){
+  const tot=Object.values(src).reduce((a,b)=>a+b,0)||1; let a0=-Math.PI/2, out='';
+  ORDER.filter(k=>src[k]).forEach(k=>{
+    const a1=a0+src[k]/tot*Math.PI*2, large=a1-a0>Math.PI?1:0, R=78,r=50;
+    const p=(a,R)=>`${85+R*Math.cos(a)} ${85+R*Math.sin(a)}`;
+    out+=`<path d="M${p(a0,R)} A${R} ${R} 0 ${large} 1 ${p(a1,R)} L${p(a1,r)} A${r} ${r} 0 ${large} 0 ${p(a0,r)}Z" fill="var(${SRC[k].c})"/>`; a0=a1;
+  });
+  return `<svg viewBox="0 0 170 170">${out}<text x="85" y="82" text-anchor="middle" font-family="IBM Plex Mono" font-size="20" fill="var(--ink)">${tot}</text><text x="85" y="102" text-anchor="middle" font-size="12" fill="var(--muted)">פעולות</text></svg>`;
+}
+
+const BNAME={files:'ספריית הקבצים',web:'מגדל האינטרנט',browser:'בית הכרום',mcp:'נמל הכלים',shell:'מפעל הפקודות',write:'סדנת הכתיבה',agents:'מטה הסוכנים',tokens:'אסם הטוקנים'};
+const BJOB={files:'קורא קבצים ומחפש בתוכם',web:'מחפש ומושך מידע מהאינטרנט',browser:'שולט בדפדפן כרום: לוחץ, מצלם, בודק',mcp:'משתמש בכלים חיצוניים (חיבורים MCP)',shell:'מריץ פקודות על המחשב',write:'כותב ועורך קבצים',agents:'שולח סוכני משנה',tokens:'כמה טוקנים נצרכו: ככל שהמיכל מלא יותר, היום כבד יותר'};
+function openTokens(){
+  const T=S.tokens, bm=Object.entries(T.by_model).filter(([m])=>m!=='?').sort((a,b)=>b[1]-a[1]);
+  const mk=m=>/opus/i.test(m)?'Opus':/fable/i.test(m)?'Fable':/haiku/i.test(m)?'Haiku':'Sonnet';
+  const agg={}; bm.forEach(([m,v])=>agg[mk(m)]=(agg[mk(m)]||0)+v);
+  const tot=Object.values(agg).reduce((a,b)=>a+b,0)||1, f=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?Math.round(n/1e3)+'K':n;
+  const col={Opus:'#E0A030',Fable:'#B04CE0',Sonnet:'#2C63D6',Haiku:'#3FBF5F'};
+  const days=Object.entries(T.days), mx=Math.max(1,...days.map(d=>d[1]));
+  document.getElementById('dT').textContent='אסם הטוקנים';
+  document.getElementById('dS').textContent=`היום ${f(T.today)} · ${S.window_days} ימים: ${f(T.total)} (בלי טוקנים שנקראו מהמטמון)`;
+  document.getElementById('dB').innerHTML=`<strong>לפי מודל</strong><div class="mix" style="height:14px;width:100%;margin:8px 0">${Object.entries(agg).map(([m,v])=>`<i style="width:${v/tot*100}%;background:${col[m]}"></i>`).join('')}</div>
+    <div class="lg">${Object.entries(agg).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<span><i style="background:${col[m]}"></i>${m}<em>${f(v)} · ${Math.round(v/tot*100)}%</em></span>`).join('')}</div>
+    <div class="sub" style="margin:10px 0">Opus הוא המודל היקר. אם הוא עושה הרבה מהעבודה, כדאי לבדוק אם Sonnet מספיק למשימות הפשוטות.</div>
+    <strong>14 ימים אחרונים</strong><div style="display:flex;gap:4px;align-items:flex-end;height:80px;direction:ltr;margin:8px 0 14px">${days.map(([d,v])=>`<div title="${d}: ${f(v)}" style="flex:1;background:#6FB04A;height:${Math.max(3,v/mx*100)}%;border-radius:3px 3px 0 0"></div>`).join('')}</div>
+    <strong>לפי סשן פעיל</strong>`+S.sessions.filter(s=>s.status!=='closed').map(s=>`<div class="row"><span>${esc(s.project)} <span class="tag">${mk(s.model)}</span></span><span class="v">${f(s.tok.in+s.tok.out)}</span></div>`).join('');
+  dlg.showModal();
+}
+function openBuilding(k){
+  if(k==='tokens') return openTokens();
+  if(window.OPENFACTORY){ window.FACT = window.OPENFACTORY(k, S, p=>window.WORLD.colorFor(p)); if(window.FACT) return; }
+  const rows=[]; S.sessions.forEach(s=>s.recent.forEach(r=>{ if(r.src===k) rows.push({...r,project:s.project}); }));
+  rows.sort((a,b)=>(b.t||'').localeCompare(a.t||''));
+  const tot=S.sources_total[k]||0;
+  document.getElementById('dT').textContent=BNAME[k]||k;
+  document.getElementById('dS').textContent=`${BJOB[k]||''} · ${tot} פעולות ב-${S.window_days} ימים`;
+  document.getElementById('dB').innerHTML=`<strong>מה קרה כאן לאחרונה</strong>`+(rows.slice(0,25).map(r=>`<div class="ev"><span class="t">${esc((r.t||'').slice(11,16))}</span>${pk(r.src)}<div><strong>${esc(verb(r))}</strong> <span class="tag">${esc(r.project)}</span>${r.what?'':`<div class="tg">${esc(r.target)}</div>`}</div></div>`).join('')||'<div class="empty">עוד לא קרה כאן כלום בסשנים הפעילים.</div>');
+  dlg.showModal();
+}
+function openSess(s){
+  if(!s) return;
+  const he = Object.fromEntries(S.skills.map(k=>[k.name,k.he]));
+  document.getElementById('dT').textContent = s.project;
+  document.getElementById('dS').textContent = `${s.status==='working'?'עובד עכשיו':s.status==='idle'?'מחכה לך':'סגור'} · התחיל ${(s.first||'').slice(0,10)} · ${s.subs} סוכני משנה`;
+  const tot=Object.values(s.sources).reduce((a,b)=>a+b,0)||1;
+  const sk = Object.entries(s.skills).map(([k,v])=>`<span>${esc(he[k]||k)} ×${v}</span>`).join('') || '<span>לא הופעל סקיל</span>';
+  document.getElementById('dB').innerHTML = `<div class="dgrid">${donut(s.sources)}
+    <div class="lg">${ORDER.filter(k=>s.sources[k]).map(k=>`<span style="--c:var(${SRC[k].c})"><i></i>${SRC[k].he}<em>${Math.round(s.sources[k]/tot*100)}%</em></span>`).join('')}</div></div>
+    <strong>סקילים שהופעלו</strong><div class="skchips">${sk}</div>
+    <strong>פעולות אחרונות</strong>` +
+    s.recent.slice().reverse().map(r=>`<div class="ev"><span class="t">${esc((r.t||'').slice(11,16))}</span>${pk(r.src)}<div><strong>${esc(verb(r))}</strong>${r.what?'':`<div class="tg">${esc(r.target)}</div>`}</div></div>`).join('');
+  dlg.showModal();
+}
+
+function renderSkills(){
+  const sk=S.skills, used=sk.filter(s=>s.uses>0).length;
+  document.getElementById('cSkills').textContent = `${used}/${sk.length}`;
+  document.getElementById('skLede').textContent = `${sk.length} סקילים מותקנים. ב-${S.window_days} הימים האחרונים הופעלו ${used}. סקיל שלא הופעל ושהותקן לפני יותר מ-14 יום אפשר להעביר לארכיון. הוא לא נמחק, ואפשר להחזיר אותו בלחיצה.`;
+  const el=document.getElementById('shelf');
+  if(filter==='arch'){
+    el.innerHTML = S.archived.length ? `<div class="skgrid">${S.archived.map(n=>`<div class="card sk dead"><div class="en">${esc(n)}</div><div class="foot"><span>בארכיון</span><button class="btn ghost" data-restore="${esc(n)}">החזר</button></div></div>`).join('')}</div>` : '<div class="empty">הארכיון ריק.</div>';
+  } else {
+    const max=Math.max(1,...sk.map(s=>s.uses)), cats={};
+    sk.filter(s=>filter==='all'||(filter==='used'?s.uses>0:s.uses===0)).forEach(s=>(cats[s.cat]=cats[s.cat]||[]).push(s));
+    const keys=Object.keys(cats).sort((a,b)=>cats[b].reduce((x,s)=>x+s.uses,0)-cats[a].reduce((x,s)=>x+s.uses,0)||cats[b].length-cats[a].length);
+    el.innerHTML = keys.map(c=>{
+      const items=cats[c].sort((a,b)=>b.uses-a.uses), u=items.filter(s=>s.uses).length;
+      return `<div class="cat-h"><h3>${esc(c)}</h3><span class="tag">${u} מתוך ${items.length} בשימוש</span></div><div class="skgrid">${items.map(s=>{
+        const lv=s.uses?Math.max(1,Math.round(s.uses/max*8)):0;
+        const canArch=!s.uses && s.age_days>=14;
+        return `<div class="card sk ${s.uses?'':'dead'}" title="${esc(s.desc)}"><div class="he">${esc(s.he)}</div><div class="en">${esc(s.name)}</div>
+          <div class="foot"><span>${s.uses?`הופעל ${s.uses} פעמים`:`לא הופעל · הותקן לפני ${s.age_days} ימים`}</span>${canArch?`<button class="btn ghost" data-arch="${esc(s.name)}">לארכיון</button>`:`<span class="meter">${Array.from({length:8},(_,i)=>`<i class="${i<lv?'f':''}"></i>`).join('')}</span>`}</div></div>`;}).join('')}</div>`;
+    }).join('') || '<div class="empty">אין סקילים בסינון הזה.</div>';
+  }
+  el.querySelectorAll('[data-arch],[data-restore]').forEach(b=>b.onclick=async()=>{
+    const name=b.dataset.arch||b.dataset.restore; b.disabled=true;
+    const r=await fetch('/api/skill',{method:'POST',body:JSON.stringify({name,action:b.dataset.arch?'archive':'restore'})});
+    if(!r.ok){b.textContent='נכשל';return} load();
+  });
+}
+
+function renderProps(){
+  const open=S.proposals.filter(p=>p.status==='open').length;
+  const sc=S.scout;
+  document.getElementById('cProps').textContent = open + (sc&&sc.findings?` · ${sc.findings.length} ממצאים`:'');
+  document.getElementById('scoutBox').innerHTML = sc ? `<div class="card scout"><h2>הסייר השבועי</h2><p class="lede">ריצה אחרונה: ${esc(sc.ran_at||'')} · ${esc(sc.summary||'')}</p>
+    ${(sc.findings||[]).map(f=>`<div class="find"><div><strong>${esc(f.title)}</strong> <span class="tag">${esc(f.project||'')}</span><div class="sub">${esc(f.why||'')}</div><div class="sub" style="direction:ltr;text-align:right">${esc(f.url||'')}</div></div>
+      <div><span class="tag ${f.verdict==='SAFE'?'yes':''}">${esc(f.verdict||'לא נסרק')} ${f.score!=null?f.score+'/100':''}</span></div></div>`).join('')||'<div class="empty">לא נמצא משהו ששווה התקנה השבוע.</div>'}</div>`
+    : `<div class="card scout"><h2>הסייר השבועי</h2><p class="lede">עוד לא רץ. אחרי הריצה הראשונה יופיעו כאן סקילים חדשים שמתאימים לפרויקטים הפעילים, אחרי בדיקת SkillSpector.</p></div>`;
+  const cols=[['open','ממתינות להחלטה'],['approved','אושרו, מחכות ל-/apply'],['waiting','בהמתנה'],['done','בוצעו'],['dropped','נדחו']];
+  document.getElementById('board').innerHTML = cols.map(([k,t])=>{
+    const ps=S.proposals.filter(p=>p.status===k), lim=(k==='done'||k==='dropped')?6:50;
+    return `<div class="card col"><h3>${t} <span class="tag">${ps.length}</span></h3>${ps.slice(0,lim).map(p=>`<div class="prop"><div class="id">${p.id} · ${esc(p.mode)} · ${esc(p.size)} ${esc(p.risk)}</div>${esc(p.title)}
+      ${k==='open'?`<div style="margin-top:6px"><button class="btn" data-a="1" data-id="${p.id}">אשר</button></div>`:k==='approved'?`<div style="margin-top:6px"><button class="btn ghost" data-a="0" data-id="${p.id}">בטל אישור</button></div>`:''}</div>`).join('')||'<div class="empty">אין</div>'}${ps.length>lim?`<div class="sub">ועוד ${ps.length-lim}</div>`:''}</div>`;
+  }).join('');
+  document.querySelectorAll('#board button').forEach(b=>b.onclick=async()=>{
+    b.disabled=true; const r=await fetch('/api/proposal',{method:'POST',body:JSON.stringify({id:b.dataset.id,approve:b.dataset.a==='1'})});
+    if(!r.ok){b.textContent='לא נמצא בקובץ';return} load();
+  });
+}
+
+function renderInfra(){
+  const ag=S.agents.map(a=>`<div class="row"><span>${esc(a.name)}</span><span class="v">${a.uses||'—'}</span></div>`).join('');
+  const bi=Object.entries(S.builtin_agents_used).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="row"><span>${esc(k)}</span><span class="v">${v}</span></div>`).join('');
+  const mc=S.mcps.map(m=>`<div class="row"><span>${esc(m.name)}</span><span class="tag">${esc(m.kind)}</span></div>`).join('')+S.plugins.map(p=>`<div class="row"><span style="direction:ltr">${esc(p.split('@')[0])}</span><span class="tag">מוד/פלאגין</span></div>`).join('');
+  const gr=S.graphs.map(g=>`<div class="row"><span>${esc(g.project)}</span><span class="tag ${g.graph?'yes':''}">${g.graph?'יש גרף':'אין'}</span></div>`).join('');
+  document.getElementById('infra').innerHTML=`<div class="card list"><h3>הסוכנים שהגדרת (הפעלות)</h3>${ag||'<div class="empty">אין</div>'}</div>
+    <div class="card list"><h3>סוכנים מובנים שהופעלו</h3>${bi||'<div class="empty">לא הופעלו</div>'}</div>
+    <div class="card list"><h3>חיבורים ומודים</h3>${mc}</div><div class="card list"><h3>גרף ידע לפי פרויקט</h3>${gr}</div>`;
+}
+
+function renderImprove(){
+  const I=S.improve; if(!I) return;
+  const open=S.proposals.filter(p=>p.status==='open').length, appr=S.proposals.filter(p=>p.status==='approved').length, done=S.proposals.filter(p=>p.status==='done').length;
+  document.getElementById('cImp').textContent = I.pending_transcribe.length+I.pending_insight.length ? `${I.pending_transcribe.length+I.pending_insight.length} ממתינים` : 'מעודכן';
+  const st=(lbl,n,sub,warn)=>`<div class="stage"><div class="lbl">${lbl}</div><b>${n}</b><div class="sub">${sub}</div>${warn?`<div class="warn">${warn}</div>`:''}</div>`;
+  document.getElementById('pipe').innerHTML =
+    st('סרטונים',I.videos,'בתיקיית videos', I.pending_transcribe.length?`${I.pending_transcribe.length} עוד לא תומללו`:'') +
+    st('תמלולים',I.transcripts,`${I.no_audio} בלי קול`, I.pending_insight.length?`${I.pending_insight.length} בלי תובנות`:'') +
+    st('תובנות',I.insights,'אחרי המסנן', I.parking.length?`${I.parking.length} בחניה`:'') +
+    st('הצעות',open+appr,`${open} ממתינות · ${appr} אושרו`,'') +
+    st('בוצעו',done,'מתוך PROPOSALS.md','');
+  const li=(arr,empty)=>arr.length?arr.map(x=>`<div class="row"><span dir="auto" style="font-family:var(--mono);font-size:12.5px">${esc(x)}</span></div>`).join(''):`<div class="empty">${empty}</div>`;
+  const needs=I.needs.map(n=>`<div class="row"><span>${esc(n.need)}</span><span class="tag">${esc(n.project.replace(/\s*\(.*\)/,''))}</span></div>`).join('');
+  document.getElementById('impLists').innerHTML = `
+    <div class="card list"><h3>מה המסנן מחפש עכשיו</h3>${needs||'<div class="empty">needs.md ריק, אז המסנן חוסם הכל.</div>'}<div class="sub" style="margin-top:8px">עריכה: חדר בקרה/scout/needs.md</div></div>
+    <div class="card list"><h3>מחכים לתמלול</h3>${li(I.pending_transcribe,'אין סרטונים חדשים.')}${I.pending_transcribe.length?'<div class="sub" style="margin-top:8px">להריץ בסשן: /improve</div>':''}</div>
+    <div class="card list"><h3>מחכים לתובנות</h3>${li(I.pending_insight,'הכל עובד.')}</div>
+    <div class="card list"><h3>🅿️ חניה (לא רלוונטי כרגע)</h3>${li(I.parking,'החניה ריקה. היא תתמלא אחרי ה-/improve הבא.')}</div>`;
+}
+
+function renderWho(){
+  if(!window.WORLD) return;
+  const pairs = window.WORLD.update(S, verb);
+  const st = p => { const ss=S.sessions.filter(s=>s.project===p && s.age<86400); return ss.some(s=>s.status==='working')?'עובד':ss.some(s=>s.status==='idle')?'מחכה':'סגור'; };
+  const nW=S.sessions.filter(s=>s.status==='working').length, nI=S.sessions.filter(s=>s.status==='idle').length;
+  document.getElementById('cnt').innerHTML = `<b>${nW}</b> ${nW===1?'סוכן עובד':'סוכנים עובדים'} עכשיו${nI?`<div class="sub" style="font-weight:400;font-size:12.5px">ועוד ${nI} מחכים לך</div>`:''}`;
+  const mdl = p => { const s=S.sessions.find(x=>x.project===p&&x.status!=='closed'); const m=(s&&s.model)||''; return /opus/i.test(m)?'Opus':/fable/i.test(m)?'Fable':/haiku/i.test(m)?'Haiku':m?'Sonnet':''; };
+  document.getElementById('who').innerHTML = pairs.map(([p,c])=>`<button data-p="${esc(p)}"><span class="sw" style="background:#${c.toString(16).padStart(6,'0')}"></span>${esc(p)}<span class="mdl">${mdl(p)}</span><small>${st(p)}</small></button>`).join('') || '<div class="sub">אין סשנים ב-24 השעות האחרונות.</div>';
+  document.querySelectorAll('#who button').forEach(b=>b.onclick=()=>window.WORLD.focus(b.dataset.p));
+}
+
+async function load(){
+  try{
+    S=await (await fetch('/api/state')).json();
+    const age=Math.round(Date.now()/1000-S.scanned_at);
+    document.getElementById('scan').textContent=S.ready?`נסרק לפני ${ago(Math.max(age,0))}`:'סריקה ראשונה…';
+    document.getElementById('hb').className='led on';
+    if(!dlg.open){renderFloor();}
+    renderSkills(); renderProps(); renderInfra(); renderImprove(); renderWho();
+    if(window.FACT && document.getElementById('factory')) window.FACT.update(S);
+  }catch(e){document.getElementById('scan').textContent='השרת לא עונה. הרץ start.cmd';document.getElementById('hb').className='led';}
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='t-'+b.dataset.t));
+});
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{filter=c.dataset.f;document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===c));renderSkills();});
+load(); setInterval(load,5000);
+</script>
+<script type="module">
+try{
+  const { createWorld } = await import('/world.js');
+  try { window.OPENFACTORY = (await import('/factory.js')).openFactory; } catch(e) { console.error('factory', e); }
+  window.WORLD = createWorld(document.getElementById('world'), { onAgentClick: id => openSess(S.sessions.find(x=>x.id===id)), onBuildingClick: k => openBuilding(k) });
+  document.getElementById('worldLoad').remove();
+  if (S) renderWho();
+}catch(e){ console.error(e); document.getElementById('worldLoad').remove(); document.getElementById('worldErr').hidden=false; }
+</script>
+<style>.flowp{animation:flowp 1s linear infinite}@keyframes flowp{to{stroke-dashoffset:-28}}</style>
+</body>
+</html>

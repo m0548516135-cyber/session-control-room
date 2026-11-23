@@ -1,0 +1,17 @@
+# Private, generated per machine - never commit
+control-room/.cache.json
+control-room/config.json
+control-room/scout.json
+control-room/scout/last_run.log
+__pycache__/
+*.pyc
+
+# Personal content of the self-improvement pipeline
+self-improvement/videos/*
+self-improvement/transcripts/*
+self-improvement/insights/*
+self-improvement/logs/*
+!self-improvement/*/.gitkeep
+
+# Browser automation screenshots
+.playwright-mcp/
