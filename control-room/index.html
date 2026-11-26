@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>חדר בקרה</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23E8663A%27/%3E%3Cpath d=%27M16 7v18M7 16h18%27 stroke=%27%23fff%27 stroke-width=%273%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
@@ -12,14 +13,14 @@
   --bg:#DDE4E1; --surface:#F4F7F5; --ink:#15201D; --muted:#5E6B67; --line:#C2CCC8; --panel:#E9EEEC;
   --floor:#CFD8D4; --floorline:#BAC6C1; --desk:#8C6B4A; --deskTop:#A9845E; --bot:#2B3A35; --botFace:#EAF2EE;
   --files:#C7841A; --write:#7C62CC; --web:#2C63D6; --browser:#C23B7E; --shell:#3E7D5A;
-  --mcp:#0E8C8C; --agents:#D2552B; --other:#98A3A0; --ok:#2E9E5B; --warn:#D99A1E; --off:#A6B0AC;
+  --mcp:#0E8C8C; --agents:#D2552B; --media:#C2185B; --skills:#B8860B; --other:#98A3A0; --ok:#2E9E5B; --warn:#D99A1E; --off:#A6B0AC;
   --mono:'IBM Plex Mono',ui-monospace,monospace; --sans:'IBM Plex Sans Hebrew',system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0F1513; --surface:#17201D; --ink:#E3EAE7; --muted:#8E9B97; --line:#2B3733; --panel:#121A17;
   --floor:#1C2623; --floorline:#26322E; --desk:#5B4632; --deskTop:#7A5E42; --bot:#C9D6D1; --botFace:#1B2522;
   --files:#E3A23B; --write:#9C86E6; --web:#5E8DF0; --browser:#E2669F; --shell:#5FAE7F;
-  --mcp:#2DB5B5; --agents:#EE7A52; --other:#6F7B78; --off:#45514D;
+  --mcp:#2DB5B5; --agents:#EE7A52; --media:#F0609A; --skills:#E8B931; --other:#6F7B78; --off:#45514D;
 }}
 *{box-sizing:border-box} html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
@@ -308,15 +309,18 @@ const ICON = {
   shell:'<path d="M5 8l4 4-4 4M12 17h7"/>',
   mcp:'<path d="M9 3v5M15 3v5M7 8h10v4a5 5 0 01-10 0zM12 17v4"/>',
   agents:'<circle cx="9" cy="9" r="3"/><circle cx="16" cy="10" r="2.5"/><path d="M4 19c1-3 3-5 5-5s4 2 5 5M14 18c.5-2 1.5-3 2.5-3s2.5 1 3 3"/>',
+  media:'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>',
+  skills:'<path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/>',
   other:'<circle cx="12" cy="12" r="2"/>'
 };
 const SRC = {
   files:{he:'קבצים שלך',c:'--files'}, write:{he:'כתיבה לקבצים',c:'--write'},
   web:{he:'אינטרנט',c:'--web'}, browser:{he:'כרום',c:'--browser'},
-  shell:{he:'פקודות מחשב',c:'--shell'}, mcp:{he:'כלים חיצוניים',c:'--mcp'},
+  shell:{he:'פקודות מחשב',c:'--shell'}, mcp:{he:'שירותים מחוברים',c:'--mcp'},
+  media:{he:'מדיה ויצירה',c:'--media'}, skills:{he:'סקילים',c:'--skills'},
   agents:{he:'סוכני משנה',c:'--agents'}, other:{he:'ניהול פנימי',c:'--other'}
 };
-const ORDER = ['files','web','browser','mcp','shell','write','agents','other'];
+const ORDER = ['files','web','browser','media','mcp','skills','shell','write','agents','other'];
 const VERB = {Read:'קורא קובץ',Grep:'מחפש בתוך קבצים',Glob:'מחפש קבצים',Edit:'עורך קובץ',Write:'כותב קובץ',
   Bash:'מריץ פקודה',PowerShell:'מריץ פקודה',WebSearch:'מחפש בגוגל',WebFetch:'קורא אתר',Agent:'שולח סוכן משנה',Task:'שולח סוכן משנה',
   Skill:'מפעיל סקיל',AskUserQuestion:'שואל אותך שאלה',ToolSearch:'טוען כלי',TodoWrite:'מעדכן רשימת משימות',Monitor:'ממתין לתהליך'};
@@ -398,8 +402,8 @@ function donut(src){
   return `<svg viewBox="0 0 170 170">${out}<text x="85" y="82" text-anchor="middle" font-family="IBM Plex Mono" font-size="20" fill="var(--ink)">${tot}</text><text x="85" y="102" text-anchor="middle" font-size="12" fill="var(--muted)">פעולות</text></svg>`;
 }
 
-const BNAME={files:'ספריית הקבצים',web:'מגדל האינטרנט',browser:'בית הכרום',mcp:'נמל הכלים',shell:'מפעל הפקודות',write:'סדנת הכתיבה',agents:'מטה הסוכנים',tokens:'אסם הטוקנים'};
-const BJOB={files:'קורא קבצים ומחפש בתוכם',web:'מחפש ומושך מידע מהאינטרנט',browser:'שולט בדפדפן כרום: לוחץ, מצלם, בודק',mcp:'משתמש בכלים חיצוניים (חיבורים MCP)',shell:'מריץ פקודות על המחשב',write:'כותב ועורך קבצים',agents:'שולח סוכני משנה',tokens:'כמה טוקנים נצרכו: ככל שהמיכל מלא יותר, היום כבד יותר'};
+const BNAME={files:'ספריית הקבצים',web:'מגדל האינטרנט',browser:'ביתן הכרום',mcp:'שערי השירותים',media:'סטודיו המדיה',skills:'מרכז הסקילים',shell:'מרכז הפקודות',write:'סטודיו הכתיבה',agents:'מרכז השליטה',tokens:'תחנת הכוח'};
+const BJOB={files:'קורא קבצים ומחפש בתוכם',web:'מחפש ומושך מידע מהאינטרנט',browser:'שולט בדפדפן כרום: לוחץ, מצלם, בודק',mcp:'שירותים מחוברים: מייל, דרייב, מסדי נתונים, פריסה',media:'כלי יצירה: vidIQ, Higgsfield, ElevenLabs, Canva',skills:'מפעיל סקילים (watch, ig-*, עיצוב ועוד)',shell:'מריץ פקודות על המחשב',write:'כותב ועורך קבצים',agents:'שולח סוכני משנה',tokens:'כמה טוקנים נצרכו: ככל שהמיכל מלא יותר, היום כבד יותר'};
 function openTokens(){
   const T=S.tokens, bm=Object.entries(T.by_model).filter(([m])=>m!=='?').sort((a,b)=>b[1]-a[1]);
   const mk=m=>/opus/i.test(m)?'Opus':/fable/i.test(m)?'Fable':/haiku/i.test(m)?'Haiku':'Sonnet';
@@ -407,7 +411,7 @@ function openTokens(){
   const tot=Object.values(agg).reduce((a,b)=>a+b,0)||1, f=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?Math.round(n/1e3)+'K':n;
   const col={Opus:'#E0A030',Fable:'#B04CE0',Sonnet:'#2C63D6',Haiku:'#3FBF5F'};
   const days=Object.entries(T.days), mx=Math.max(1,...days.map(d=>d[1]));
-  document.getElementById('dT').textContent='אסם הטוקנים';
+  document.getElementById('dT').textContent='תחנת הכוח · טוקנים';
   document.getElementById('dS').textContent=`היום ${f(T.today)} · ${S.window_days} ימים: ${f(T.total)} (בלי טוקנים שנקראו מהמטמון)`;
   document.getElementById('dB').innerHTML=`<strong>לפי מודל</strong><div class="mix" style="height:14px;width:100%;margin:8px 0">${Object.entries(agg).map(([m,v])=>`<i style="width:${v/tot*100}%;background:${col[m]}"></i>`).join('')}</div>
     <div class="lg">${Object.entries(agg).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<span><i style="background:${col[m]}"></i>${m}<em>${f(v)} · ${Math.round(v/tot*100)}%</em></span>`).join('')}</div>
@@ -464,7 +468,7 @@ function renderSkills(){
   }
   el.querySelectorAll('[data-arch],[data-restore]').forEach(b=>b.onclick=async()=>{
     const name=b.dataset.arch||b.dataset.restore; b.disabled=true;
-    const r=await fetch('/api/skill',{method:'POST',body:JSON.stringify({name,action:b.dataset.arch?'archive':'restore'})});
+    const r=await fetch('/api/skill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,action:b.dataset.arch?'archive':'restore'})});
     if(!r.ok){b.textContent='נכשל';return} load();
   });
 }
@@ -475,7 +479,7 @@ function renderProps(){
   document.getElementById('cProps').textContent = open + (sc&&sc.findings?` · ${sc.findings.length} ממצאים`:'');
   document.getElementById('scoutBox').innerHTML = sc ? `<div class="card scout"><h2>הסייר השבועי</h2><p class="lede">ריצה אחרונה: ${esc(sc.ran_at||'')} · ${esc(sc.summary||'')}</p>
     ${(sc.findings||[]).map(f=>`<div class="find"><div><strong>${esc(f.title)}</strong> <span class="tag">${esc(f.project||'')}</span><div class="sub">${esc(f.why||'')}</div><div class="sub" style="direction:ltr;text-align:right">${esc(f.url||'')}</div></div>
-      <div><span class="tag ${f.verdict==='SAFE'?'yes':''}">${esc(f.verdict||'לא נסרק')} ${f.score!=null?f.score+'/100':''}</span></div></div>`).join('')||'<div class="empty">לא נמצא משהו ששווה התקנה השבוע.</div>'}</div>`
+      <div><span class="tag ${f.verdict==='SAFE'?'yes':''}">${esc(f.verdict||'לא נסרק')} ${Number.isFinite(+f.score)&&f.score!==null&&f.score!==''?(+f.score)+'/100':''}</span></div></div>`).join('')||'<div class="empty">לא נמצא משהו ששווה התקנה השבוע.</div>'}</div>`
     : `<div class="card scout"><h2>הסייר השבועי</h2><p class="lede">עוד לא רץ. אחרי הריצה הראשונה יופיעו כאן סקילים חדשים שמתאימים לפרויקטים הפעילים, אחרי בדיקת SkillSpector.</p></div>`;
   const cols=[['open','ממתינות להחלטה'],['approved','אושרו, מחכות ל-/apply'],['waiting','בהמתנה'],['done','בוצעו'],['dropped','נדחו']];
   document.getElementById('board').innerHTML = cols.map(([k,t])=>{
@@ -484,7 +488,7 @@ function renderProps(){
       ${k==='open'?`<div style="margin-top:6px"><button class="btn" data-a="1" data-id="${p.id}">אשר</button></div>`:k==='approved'?`<div style="margin-top:6px"><button class="btn ghost" data-a="0" data-id="${p.id}">בטל אישור</button></div>`:''}</div>`).join('')||'<div class="empty">אין</div>'}${ps.length>lim?`<div class="sub">ועוד ${ps.length-lim}</div>`:''}</div>`;
   }).join('');
   document.querySelectorAll('#board button').forEach(b=>b.onclick=async()=>{
-    b.disabled=true; const r=await fetch('/api/proposal',{method:'POST',body:JSON.stringify({id:b.dataset.id,approve:b.dataset.a==='1'})});
+    b.disabled=true; const r=await fetch('/api/proposal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.dataset.id,approve:b.dataset.a==='1'})});
     if(!r.ok){b.textContent='לא נמצא בקובץ';return} load();
   });
 }
@@ -550,13 +554,23 @@ load(); setInterval(load,5000);
 </script>
 <script type="module">
 try{
-  const { createWorld } = await import('/world.js');
+  let pick = 'campus'; try { pick = localStorage.getItem('cr-world') || 'campus'; } catch {}
+  const { createWorld } = await import(pick === 'island' ? '/world.js' : '/campus.js');
+  if (pick === 'island') {
+    const b = document.createElement('button'); b.textContent = 'למתחם החדש'; b.className = 'to-campus';
+    b.onclick = () => { try { localStorage.setItem('cr-world', 'campus'); } catch {} location.reload(); };
+    document.getElementById('world').appendChild(b);
+  } else {
+    const h = document.querySelector('#world .hud-hint');
+    if (h) h.lastChild.textContent = 'כל דמות היא סשן פתוח, בצבע של הפרויקט שלו. במרכז עומד מרכז השליטה, וכל מתקן סביבו הוא מקור מידע: מגדל האינטרנט, ספריית הקבצים, ביתן הכרום, מרכז הפקודות ועוד. קו אור מחבר כל מתקן למרכז השליטה, וכשסוכן לוקח ממנו מידע רצות עליו חבילות אור. דמות שעובדת הולכת בין המתקנים ונושאת ארגז בצבע המתקן. דמות שמחכה לך עומדת בתא הזכוכית של הפרויקט שלה, בשולי הכיכר, עם Zz. טבעת ההולוגרמה מעל הכיכר מראה את המספרים החיים. גוררים את השמש בקשת למטה כדי לראות את המתחם ביום, בשקיעה ובלילה. "הליכה" = מסתובבים ברגל (WASD), "סיור" = טיסה אוטומטית. לחיצה על בניין פותחת מה קורה בו.';
+  }
   try { window.OPENFACTORY = (await import('/factory.js')).openFactory; } catch(e) { console.error('factory', e); }
   window.WORLD = createWorld(document.getElementById('world'), { onAgentClick: id => openSess(S.sessions.find(x=>x.id===id)), onBuildingClick: k => openBuilding(k) });
   document.getElementById('worldLoad').remove();
   if (S) renderWho();
 }catch(e){ console.error(e); document.getElementById('worldLoad').remove(); document.getElementById('worldErr').hidden=false; }
 </script>
-<style>.flowp{animation:flowp 1s linear infinite}@keyframes flowp{to{stroke-dashoffset:-28}}</style>
+<style>.flowp{animation:flowp 1s linear infinite}@keyframes flowp{to{stroke-dashoffset:-28}}
+.to-campus{position:absolute;bottom:14px;left:14px;z-index:4;font:600 13px "IBM Plex Sans Hebrew",sans-serif;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer}</style>
 </body>
 </html>

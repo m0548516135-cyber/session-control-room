@@ -1,7 +1,7 @@
 {
   "name": "session-control-room",
   "description": "Installs and runs the Control Room: a zero-token local dashboard for Claude Code (live sessions, sources, tokens, skills, a 3D world view), a weekly skill scout, and a self-improvement pipeline. Windows. Provided AS-IS, without warranty.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Session Control Room contributors"
   },

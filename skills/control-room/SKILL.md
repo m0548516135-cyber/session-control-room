@@ -53,6 +53,9 @@ answers, it is already running: just open it.
 - Verify before saying it works: request `http://localhost:<port>/api/state` and check for HTTP 200 and a
   `"sessions"` list. If the port is busy, the server prints that clearly; another copy may already be running.
 - The 3D "World" tab loads Three.js from cdn.jsdelivr.net; without internet, the "Stations" tab still works.
+- The World is a small control city: one facility per information source around a command center. Clicking a
+  facility flies inside it, where a 3D room replays the real recent actions done there (Esc or "חזרה לעיר" to
+  leave). The older island view is one click away ("האי הישן"). If the picture stutters, "איכות: מהירה".
 
 ## 4. Optional parts (only if the user wants them)
 
@@ -89,4 +92,11 @@ results; closed sessions are hidden; only the last 30 days are scanned.
 | Odd numbers after updating the code | Delete `control-room\.cache.json` and restart. |
 | A proposal is not shown | The line in `PROPOSALS.md` does not match the required format (see the README). |
 
-Update to the latest version: `git -C "<target>" pull`, then restart `start.cmd`.
+## Updating
+
+- `start.cmd` checks GitHub at every start. When a newer version exists it lists what changed and asks
+  "Update now? [y/N]"; it never updates without a yes. Offline or without git it stays silent.
+- To update on request: `git -C "<target>" pull --ff-only`, then restart `start.cmd`. If the pull fails
+  because of local edits, show the user `git -C "<target>" status` and ask before discarding anything.
+- Updating this plugin (`claude plugin update session-control-room@session-control-room`) refreshes these
+  instructions only; the dashboard itself updates through git as above.

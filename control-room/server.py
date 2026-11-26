@@ -7,7 +7,7 @@ Run:  py server.py   ->  http://localhost:8790
 import json, os, re, threading, time, urllib.parse
 from collections import Counter, defaultdict
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 HOME = Path.home()
 CLAUDE = HOME / ".claude"
@@ -48,7 +48,12 @@ def source_of(tool: str) -> str:
         return "shell"
     if tool in ("Agent", "Task"):
         return "agents"
+    if tool == "Skill":
+        return "skills"
     if tool.startswith("mcp__"):
+        # creative/media connectors get their own studio; everything else (mail, drive, db, deploy...) = service gates
+        if any(k in t for k in ("vidiq", "higgsfield", "elevenlabs", "canva", "descript", "gamma", "generate_image", "generate_video")):
+            return "media"
         return "mcp"
     return "other"
 
@@ -133,6 +138,8 @@ def detail(tool: str, inp) -> dict:
         d = {"u": s("url", 120)}
     elif tool in ("Agent", "Task"):
         d = {"q": s("description", 70)}
+    elif tool == "Skill":
+        d = {"q": s("skill", 60)}
     elif tool.startswith("mcp__"):
         d = {k: s(v, 100) for k, v in (("q", "query"), ("u", "url"), ("e", "element"), ("t", "text")) if s(v, 100)}
         d["a"] = tool.split("__")[-1][:40]
@@ -155,7 +162,7 @@ _lock = threading.Lock()
 STATE = {"files": {}, "ready": False, "scanned_at": 0}
 
 
-CACHE_VERSION = 4
+CACHE_VERSION = 5   # 5: media + skills buildings
 
 
 def load_cache():
@@ -364,9 +371,12 @@ def skill_he():
 
 
 def move_skill(name: str, archive: bool) -> bool:
-    if not re.fullmatch(r"[\w.\-]+", name):
+    # must start with a letter/digit: "." or ".." would otherwise resolve to the whole skills folder
+    if not re.fullmatch(r"[A-Za-z0-9][\w.\-]*", name):
         return False
     src, dst = (CLAUDE / "skills" / name, ARCHIVE / name) if archive else (ARCHIVE / name, CLAUDE / "skills" / name)
+    if src.parent not in (CLAUDE / "skills", ARCHIVE) or dst.parent not in (CLAUDE / "skills", ARCHIVE):
+        return False
     if not src.is_dir() or dst.exists():
         return False
     dst.parent.mkdir(exist_ok=True)
@@ -608,24 +618,50 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b)
 
+    # Only the dashboard itself may talk to this server. A web page you visit can still send requests to
+    # 127.0.0.1 (CSRF) or point its own hostname at it (DNS rebinding): both carry a foreign Host/Origin.
+    def _trusted(self, post=False):
+        ok_hosts = (f"127.0.0.1:{PORT}", f"localhost:{PORT}")
+        if self.headers.get("Host", "") not in ok_hosts:
+            return False
+        if post:
+            if self.headers.get("Origin", "") not in tuple("http://" + h for h in ok_hosts):
+                return False
+            if not (self.headers.get("Content-Type", "") or "").startswith("application/json"):
+                return False
+        return True
+
     def do_GET(self):
+        if not self._trusted():
+            return self._send(403, "{}")
         if self.path.startswith("/api/state"):
             return self._send(200, json.dumps(build_state(), ensure_ascii=False))
         if self.path in ("/", "/index.html"):
             return self._send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
         if self.path.startswith("/api/shots"):
             shots = []
-            for p in PROJECTS_ROOT.rglob(".playwright-mcp/*"):
-                if p.suffix.lower() in (".jpeg", ".jpg", ".png"):
-                    try:
-                        shots.append((p.stat().st_mtime, p))
-                    except OSError:
-                        pass
+            # os.walk with onerror=None skips unreadable/too-long paths (rglob crashed on a Flutter build dir);
+            # heavy build/dependency folders are pruned so this stays fast.
+            SKIP = {"node_modules", ".git", "build", ".dart_tool", ".gradle", "venv", ".venv", "__pycache__", "dist", "Pods"}
+            for root, dirs, files in os.walk(PROJECTS_ROOT, onerror=lambda e: None):
+                dirs[:] = [d for d in dirs if d not in SKIP]
+                if os.path.basename(root) != ".playwright-mcp":
+                    continue
+                for f in files:
+                    if f.lower().endswith((".jpeg", ".jpg", ".png")):
+                        p = Path(root) / f
+                        try:
+                            shots.append((p.stat().st_mtime, p))
+                        except OSError:
+                            pass
             shots.sort(reverse=True)
             out = [{"t": t, "u": "/api/img?p=" + urllib.parse.quote(str(p.relative_to(PROJECTS_ROOT)).replace("\\", "/"))} for t, p in shots[:8]]
             return self._send(200, json.dumps(out))
         if self.path.startswith("/api/img"):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("p", [""])[0]
+            wq = PureWindowsPath(q)
+            if not q or wq.anchor or ".." in wq.parts:   # no drive/UNC/absolute paths (resolve() could reach out over SMB)
+                return self._send(404, "{}")
             f = (PROJECTS_ROOT / q).resolve()
             if f.suffix.lower() in (".jpeg", ".jpg", ".png") and ".playwright-mcp" in f.parts and PROJECTS_ROOT.resolve() in f.parents and f.exists():
                 return self._send(200, f.read_bytes(), "image/png" if f.suffix.lower() == ".png" else "image/jpeg")
@@ -635,6 +671,8 @@ class H(BaseHTTPRequestHandler):
         self._send(404, "{}")
 
     def do_POST(self):
+        if not self._trusted(post=True):
+            return self._send(403, "{}")
         if self.path.startswith("/api/skill"):
             n = int(self.headers.get("Content-Length") or 0)
             try:
